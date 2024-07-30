@@ -1,0 +1,31 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_WORK_QUERY_SQL
+    Funcao auxiliar para demonstrar o funcionamento de querys SQL em ADVPL
+    @type  Function
+    @author Renan Augusto
+    @see  DBUseArea (tdn)
+    @see  TCGenQry (tdn)
+    @see  TCSetField (tdn)
+    /*/
+Function U_WORK_QUERY_SQL
+
+    Local cSQL      := ''
+    Local aDados    := array(0)
+
+    rpcSetEnv('99', '01')
+
+    cSQL    := "SELECT A2_COD, A2_LOJA, A2_NOME, A2_DTNASC FROM SA2990 WHERE D_E_L_E_T_ = '' ORDER BY A2_NOME"
+
+    DBUseArea(.T., "TOPCONN", TCGenQry(,,cSQL),"QRY", .T., .F.) //area de trabalho resultante de uma consulta sql sera sempre somente leitura
+
+    While .not. QRY->(eof())
+        QRY->(aadd(aDados,{A2_COD,A2_LOJA, A2_NOME, A2_DTNASC}), dbSkip())
+        TCSetField("QRY", "A2_DRTNASC", "D", 8, 0)
+    Enddo
+
+    QRY->(dbCloseArea()) //uma boa pratica sempre encerrar a area de trabalho
+
+    rpcClearEnv()
+    
+Return aDados

@@ -1,0 +1,55 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_WORK_ARQUIVO_TEMPORARIO_2
+    (long_description)
+    @type  Function
+    @author Renan Augusto
+    @since 29/07/2024
+    @see tdn FWTemporaryTable
+    /*/
+Function U_WORK_ARQUIVO_TEMPORARIO_2
+    
+    Local oTempTable as object
+    Local cAliasTemp as character
+    Local cRealName as character
+    Local aCampos as array
+
+    rpcSetEnv('99', '01')
+
+        cAliasTemp := 'TRBSA1SA2'
+        oTempTable := FWTemporaryTable():new(cAliasTemp) //new é o método construtor de uma classe TLPP ADVPL
+        oTempTable:setFields({{"ENTIDADE", "C", 3,0}, {"CODIGO","C",6,0}, {"LOJA", "C", 30, 0}}) //acessando uma funcao propria 
+        oTempTable:addIndex("IND_1", {"CODIGO", "LOJA", "ENTIDADE"})
+        oTempTable:create()
+
+        cRealName := oTempTable:getRealName() //nome que a tabela realmente tera no banco de dados
+
+        dbSelectArea("SA1")
+        dbSetOrder(1)
+
+        while .not. eof()
+
+            (cAliasTemp)->(reclock(alias(), .T.), CODIGO := SA1->A1_COD, LOJA := SA1->A1_LOJA, NOME := SA1->A1_NOME, ENTIDADE := SA1->(alias(), msunlock()))
+            dbSkip()
+        end
+
+        dbSelectArea("SA2")
+        dbSetOrder(1)
+
+        while .not. eof()
+
+            (cAliasTemp)->(reclock(alias(), .T.), CODIGO := SA2->A2_COD, LOJA := SA2->A2_LOJA, NOME := SA2->A2_NOME, ENTIDADE := SA2->(alias(), msunlock()))
+            dbSkip()
+        
+        end
+
+        cTxt := "ENTIDADE;CODIGO;LOJA;NOME"
+
+        (cAliasTemp)->(dbEval({|| cTxt += CRLF + ENTIDADE + ';' + CODIGO + ';' + LOJA + ';' + NOME}))
+
+        cArquivo := "C:\TOTVS\ListaEntidades.csv"
+        lArquivo := memoWrite(cArquivo, cTxt)
+
+    rpcClearEnv()
+
+Return 

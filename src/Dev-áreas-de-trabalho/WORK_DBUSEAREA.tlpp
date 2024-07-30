@@ -1,0 +1,34 @@
+#include 'totvs.ch'
+
+//-- @see https://tdn.totvs.com/display/tec/DBUseArea
+//-- @see https://tdn.totvs.com/display/tec/DBSetIndex
+//-- @see https://tdn.totvs.com/display/tec/Comando+USE
+
+Function U_WORK_DBUSEAREA
+
+    //-- Prepara o ambiente
+    rpcSetEnv('99','01','admin',' ','FAT','U_WORK_DBSELECTAREA')
+
+    lNewArea := .T.
+    cDriver  := 'TOPCONN'
+    cArquivo := retSqlName("SA1") //nome fisico da tabela
+    cAlias   := 'SA1'
+    lShared  := .T. //bloqueia ou nao acesso simultaneo
+    lReadOnly:= .F. //area de trabalho somente leitura ou podera ser modificada
+
+    //dbUseArea(lNewArea,cDriver,cArquivo,(cAlias),lShared,lReadOnly) 
+    //os parenteses em volta da cAlias retiram as aspas do conteudo da variavel ou seja de 'SA1' iria para SA1
+    USE SA1990 ALIAS SA1 SHARED NEW VIA "TOPCONN"
+    
+    dbSelectArea("SB1")
+    dbSelectArea("SA1")
+
+    cIndex1   := cArquivo + '1'
+    cIndex2   := cArquivo + '2'
+    
+    dbSetIndex(cIndex1)
+    dbSetIndex(cIndex2)
+
+    rpcClearEnv()
+
+return

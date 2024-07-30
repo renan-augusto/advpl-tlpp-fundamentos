@@ -1,0 +1,75 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_WORK_ARQUIVO_TEMPORARIO_1
+    (long_description)
+    @type  Function
+    @author Renan Augusto
+    @since 29/07/2024
+    @see Criatrab
+    @see DbUseArea
+    @see DBCreateIndex
+    @see DBSetIndex
+    @see File
+    @see FErase 
+    /*/
+Function U_WORK_ARQUIVO_TEMPORARIO_1(param_name)
+    
+    rpcSetEnv('99', '01')
+
+    aCampos := {{"ENTIDADE", "C", 3,0}, {"CODIGO","C",6,0}, {"LOJA", "C", 30, 0}}
+
+    
+    cArqTrab := Criatrab(aCampos, .T.) //nome do arquivo físico e alias
+    
+    DbUseArea(.T.,,cArqTrab, cArqTrab, .T., .F.)
+
+    DBCreateIndex(cArqTrab+'1',"CODIGO+LOJA+ENTIDADE", {|| CODIGO+LOJA+ENTIDADE})
+
+    DBSetIndex(cArqTrab+'1')
+
+    //populando o registro temporário
+
+    SA1->(dbSetOrder(1))
+
+    while .not. SA1->(eof())
+        
+        reclock(cArqTrab, .T.)
+            CODIGO      := SA1->A1_COD
+            LOJA        := SA1->A1_LOJA
+            NOME        := SA1->A1_NOME
+            ENTIDADE    := 'SA1'
+        msunlock()
+
+        SA1->(dbSkip())
+    Enddo
+
+    dbSelectArea('SA2')
+    dbSetOrder(1)
+
+    while .not. eof()
+        
+        (cArqTrab)->(reclock(cArqTrab, .T.))
+
+            (cArqTrab)->CODIGO   := A2_COD
+            (cArqTrab)->LOJA     := A2_LOJA
+            (cArqTrab)->NOME     := A2_NOME
+            (cArqTrab)->ENTIDADE := alias()
+        (cArqTrab)->(msunlock())
+        
+        dbSkip()
+
+    enddo
+
+    (cArqTrab)->(dbCloseArea())
+
+    If File('\system\' + cArqTrab + '.dtc')
+        FErase('\system\' + cArqTrab + '.dtc')
+    EndIf
+
+    If File('\system\' + cArqTrab + '1.cdx')
+        FErase('\system\' + cArqTrab + '1.cdx')
+    EndIf
+
+    rpcClearEnv()
+
+Return
