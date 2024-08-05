@@ -1,0 +1,52 @@
+/*/{Protheus.doc} U_WORK_ARQUIVO_TEMPORARIO_3
+    Criacao de arquivos temporarios com uso de funcoes de banco de dados
+    @type  Function
+    @author Renan Augusto
+    @since 31/07/2024
+    @see TCCanOpen
+    @see TCDelFile
+    @see DbCreate
+    @see DbCreateIndex
+    @see DbAppend
+    @see DbCommit
+    @see DbSetIndex
+    /*/
+Function U_WORK_ARQUIVO_TEMPORARIO_3
+    
+    rpcSetEnv('99', '01')
+
+    aCampos := {{"ENTIDADE", "C", 3, 0}, {"CODIGO", "C", 6, 0}, {"LOJA", "C", 30, 0}, {"DTNASC", "D", 8, 0}}
+    cAliasTab := "TAB_ENTIDADES"
+
+    If TCCanOpen(cAliasTab)
+        TCDelFile(cAliasTab)
+    EndIf
+
+    dbCreate(cAliasTab, aCampos, "TOPCONN")
+    dbUseArea(.T., "TOPCONN", cAliasTab, cAliasTab, .T., .F.)
+    dbCreateIndex(cAliasTab+"1", "CODIGO+LOJA+ENTIDADE", {|| CODIGO+LOJA+ENTIDADE})
+
+    SA1->(dbSetOrder(1))
+
+    while .not. SA1->(eof())
+        
+        dbAppend() //funcao executada para a area de trabalho corrente. Entao dbAppend esta sendo executado para o nosso CAliasTab
+        //Caso não estivesse ativo, em caso de trazer a SA1 por dbselectarea por exemplo a escrita seria assim:
+        // (cAliasTab)->(dbAppend())
+        ENTIDADE := "SA1"
+        CODIGO := SA1->A1_COD  //como nao estou com a SA1 na area de trabalho eu preciso passar o alias para o programa identificar o registro
+        LOJA := SA1->A1_LOJA   //no caso de onde esta recebendo o conteudo, nessa linha "LOJA", é aonde eu tenho minha area de trabalho ativa
+        NOME := SA1->A1_NOME
+        DTNASC := SA1->A1_DTNASC
+
+        dbCommit()  //dbappend() e dbcommit() apenas estou incluindo registros
+
+        SA1->(dbSkip())
+
+    enddo
+
+    TCDelFile(cAliasTab)
+
+    rpcClearEnv()
+
+Return

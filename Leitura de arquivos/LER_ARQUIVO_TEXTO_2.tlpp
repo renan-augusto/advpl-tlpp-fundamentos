@@ -1,0 +1,46 @@
+/*/{Protheus.doc} U_LER_ARQUIVO_TEXT_2
+    Leitura de arquivos utilizando uma classe
+    @type  Function
+    @author Renan Augusto
+    @since 05/08/2024
+    @see FWFileReader
+    @see ASort
+    /*/
+Function U_LER_ARQUIVO_TEXT_2
+    
+    Local cArquivo as character
+    Local cBuffer as character
+    Local cTexto as character
+    local aLinhas as array
+    local aDados as array
+    local oFile as object
+
+    rpcSetEnv('99', '01')
+
+    cArquivo := 'C:\TOTVS\ListaClifFor.csv'
+
+    oFile := FWFileReader():new(cARquivo)
+    lOpen := oFile:open()
+
+    if lOpen
+        while .not. ofile:eof()
+            cBuffer := oFile:getLine()
+            cTexto += if(empty(cTexto), '', CRLF) + cBuffer
+        enddo
+    else 
+        fwAlertError(ofile:error():message, 'ERRO AO ABRIR ARQUIVO')
+        rpcClearEnv()
+        return .f.
+    endIf
+    
+    oFile:close()
+
+    aLinhas := strToKArr(cTexto, CHR(13) + CHR(10))
+    aDados := {}
+
+    aeval(aLinhas, {|x| aadd(aDados, strToKArr(x, ";"))})
+    ASort(aDados,2,,{|x,y| x[2] + x[1] < y[2] + y[1]})
+
+    rpcClearEnv()
+
+Return

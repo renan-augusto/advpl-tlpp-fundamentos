@@ -1,0 +1,75 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_CRIAR_ARQUIVO_TEXTO_2
+    (long_description)
+    @type  Function
+    @author Renan Augusto
+    @since 01/08/2024
+    @see tdn FWFileWriter
+    /*/
+Function U_CRIAR_ARQUIVO_TEXTO_2
+
+    Local cSaveFile as character
+    Local cBuffer as character
+    Local oArqTxt as object
+    Local lExistFile as logical
+    Local lArqTxt as logical
+    Local lWrite as logical
+
+    rpcSetEnv('99', '01')
+
+    cSaveFile := 'C:\TOTVS\ListaCliFor.txt'
+    lExistFile := File(cSaveFile)
+    oArqTxt := FWFileWriter():new(cSaveFile, .F.)
+
+    if lExistFile
+        lArqTxt := oArqTxt:open(2)
+        
+        if lArqTxt
+            oArqTxt:clear()
+        else
+            fwAlertError(oArqTxt:error():message, 'Erro na abertura do arquivo')
+            rpcClearEnv()
+            return .F.
+        endif
+    else
+        lArqTxt := oArqTxt:create()
+
+        if .not. lArqTxt
+            fwAlertError(oArqTxt:error():message, 'Erro na abertura do arquivo')
+            rpcClearEnv()
+            return .F.
+        endif
+    endif
+
+    cBuffer := padr("CODIGO", 10) + padr("LOJA", 5) + padr("NOME", 35) + padr("DT_NASCIMENTO", 20) + padr("ENTIDADE", 10) 
+    lWrite := oArqTxt:write(cBuffer)
+
+    if .not. lWrite
+        fwAlertError(oArqTxt:error():message, 'Erro na abertura do arquivo')
+        rpcClearEnv()
+        return .F.
+    endif
+
+    cBuffer := CRLF + strtran(space(80), "", "-")
+    oArqTxt:write(cBuffer)
+
+        cPrefixo := ''
+
+    bBloco := {|| cPrefixo := substr(alias(), 2, 2),; 
+                  cBuffer := CRLF +; //CRLF para fazer a quebra de linhas
+                            padr(&(cPrefixo + "_COD"), 10) +; 
+                            padr(&(cPrefixo + "_LOJA"), 5) +; 
+                            padr(LEFT(&(cPrefixo + '_NOME'), 30), 35) +; 
+                            padr(dtoc(&(cPrefixo + '_DTNASC')), 20) +;
+                            padr(alias(), 10),; 
+                            oArqTxt:write(cBuffer)}
+
+    SA1->(dbEval(bBloco))
+    SA2->(dbEval(bBloco))
+
+    oArqTxt:close()
+
+    rpcClearEnv()
+    
+Return

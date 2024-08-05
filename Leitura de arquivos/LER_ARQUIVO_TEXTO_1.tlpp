@@ -1,0 +1,57 @@
+/*/{Protheus.doc} U_LER_ARQUIVO_TEXTO1
+    (long_description)
+    @type  Function
+    @author Renan Augusto
+    @since 02/08/2024
+    @version 1.
+    @see Fopen
+    @see Fseek
+    @see FRead
+    @see Len
+    @see StrTokArr
+    @see AEVal 
+    /*/
+Function U_LER_ARQUIVO_TEXTO1
+    
+    Local cArquivo as character
+    Local cBuffer as character
+    Local cTexto as character
+    Local nHandle as numeric
+    Local nTamFile as numeric
+    Local nTamLidos as numeric
+    Local aLinhas as array
+    Local aDados as array
+
+
+    rpcSetEnv('99', '01')
+
+    cArquivo := 'C:\TOTVS\ListaCliFor.csv'
+
+    nHandle := fOpen(cArquivo)
+
+    If nHandle < 0
+        fwAlertError("Erro ao efetuar a leitura do arquivo - codigo do erro: " + str(fError(), 4), "ERRO")
+        rpcClearEnv()
+        return .F.
+    endif
+
+    nTamFile := Fseek(nHandle,0,2) //posiicona o ponteiro do arquivo na leitura dele
+    Fseek(nHandle, 0)
+
+    while nTamLidos < nTamFile
+        cBuffer := ''
+        nTamLidos += FRead(nHandle, @cBuffer, 100)
+        cTexto += cBuffer
+    end
+
+    fClose(nHandle)
+
+    aLinhas := StrTokArr(cTexto,CHR(13) + CHR(10)) //quebrando linhas
+
+    //agora preciso quebrar cada linha em colunas para salva-lo num vetor
+    aDados := array(0)
+    AEVal(aLinhas, {|x| aadd(aDados, StrTokArr(x, ";"))})
+
+    rpcClearEnv()
+
+Return
