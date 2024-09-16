@@ -13,7 +13,7 @@
     (examples)
     @see (links_or_references)
     /*/
-Function nomeFunction(param_name)
+User Function nomeFunction(param_name)
     
 Return return_var
 

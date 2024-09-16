@@ -1,0 +1,31 @@
+#include 'totvs.ch'
+
+Function U_CONSULTACLIFOR
+
+    if type("cCodClienteFornecedor") == "C"
+        cCodClienteFornecedor  := space(tamSx3("A1_COD")[1]) //tenho que retornar o tamanho do campo que ele conseguira digitar
+        cLojaClienteFornecedor := space(tamSx3("A1_LOJA")[1])
+    else
+        Public cCodClienteFornecedor  := space(tamSx3("A1_COD")[1]) as character
+        Public cLojaClienteFornecedor := space(tamSx3("A1_LOJA")[1]) as character
+    endif
+
+    if M->Z51_TPINTE == "C" //--integracao com o fornecedor (contrato de compras) opcao do campo
+        
+        if conpad1(,,,"SA2")
+            cCodClienteFornecedor  := SA2->A2_COD
+            cLojaClienteFornecedor := SA2->A2_LOJA
+            return .T.
+        endif
+
+    else //-- integracao com cadastro de clientes
+
+        if conpad1(,,,"SA1")
+            cCodClienteFornecedor  := SA2->A2_COD
+            cLojaClienteFornecedor := SA2->A2_LOJA
+            return .T.
+        endif
+
+    endif
+
+return .F.

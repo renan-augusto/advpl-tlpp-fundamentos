@@ -1,3 +1,4 @@
+#include 'totvs.ch'
 /*/{Protheus.doc} U_WORK_ARQUIVO_TEMPORARIO_3
     Criacao de arquivos temporarios com uso de funcoes de banco de dados
     @type  Function
