@@ -87,9 +87,13 @@ Static Function modeldef
     local oModel
     local oStruct
     local aTrigger
+    local bModelPre := {|x| fnModPre(x)} //evento de pre-validacao de modelo
+    local bModelPos := {|x| fnModPos(x)} //validacao tudook - identifica a ultima validacao executada na aplicacao.
+    local bCommit   := {|x| fnCommit(x)} //funcao que fara a gravacao dos dados no banco, retorno verdadeiro ou falso para indicar a gravacao ou nao 
+    local bCancel   := {|x| fnCancel(x)} //funcao executada quando o usuario clicar em cancelar
 
     oStruct         := fwFormStruct(1, 'Z50') //objeto gerado a partir da FWFormStruct
-    oModel          := mpFormModel():new('MODEL_GCTBM001')
+    oModel          := mpFormModel():new('MODEL_GCTBM001', bModelPre, bModelPos, bCommit, bCancel) 
 
     aTrigger        := fwStruTrigger('Z50_TIPO', 'Z50_CODIGO', 'U_GCTT001()',.F., Nil, Nil, Nil, Nil)
                         //funcao utilizada para a criacao do gatilho
