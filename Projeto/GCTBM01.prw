@@ -88,12 +88,13 @@ Static Function modeldef
     local oStruct
     local aTrigger
 
-    oStruct         := fwFormStruct(1, 'Z50')
+    oStruct         := fwFormStruct(1, 'Z50') //objeto gerado a partir da FWFormStruct
     oModel          := mpFormModel():new('MODEL_GCTBM001')
 
     aTrigger        := fwStruTrigger('Z50_TIPO', 'Z50_CODIGO', 'U_GCTT001()',.F., Nil, Nil, Nil, Nil)
                         //funcao utilizada para a criacao do gatilho
     oStruct:addTrigger(aTrigger[1], aTrigger[2], aTrigger[3], aTrigger[4]) //metodo do struct que aciona o trigger. REceber as 4 primeiras posicoes que o fwstrutrigger retornar
+    oStruct:setProperty('Z50_TIPO', MODEL_FIELD_WHEN, {|| inclui}) //inclui-> variavel publica que vai verificar se estou numa inclusao
 
     oModel:addFields('Z50MASTER',, oStruct) //cuidado, na modeldef é addFields no plural
     oModel:setDescription('Tipos de contratos')
@@ -109,6 +110,18 @@ Function U_GCTT001
     
     Local cNovoCod      := ''
     Local cAliasSQL     := ''
+    Local oModel        := fwModelActive() //retorna o model que esta em execucao naquele momento
+    Local nOperation    := 0
+
+    nOperation          := oModel:getOperation()
+
+    if .not. (nOperation == 3 .or. nOperation == 9)
+        
+        cNovoCod        := oModel:getModel('Z50MASTER'):getValue('Z50_CODIGO') //metodo de consulta grid
+
+        return cNovoCod
+
+    endif
 
     cAliasSQL           := getNextAlias() //funcao que gera alias aleatorio
 
