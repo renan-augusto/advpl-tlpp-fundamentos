@@ -106,6 +106,57 @@ Static Function modeldef
 
 Return oModel
 
+/*/{Protheus.doc} fnModPre
+    Funcao de pre-validacao do modelo de dados
+    @type  Static Function
+/*/
+Static Function fnModPre(oModel)
+    //por meio do objeto model vamos identificar qual tipo de operacao está sendo executada e qual o campo alterado
+    local lValid        := .T.
+    local nOperation    := oModel:getOperation()
+    local cCampo        := strtran(readvar(), "M->", "") //retorna qual o campo que esta sendo editado
+
+    if nOperation == 4  //representa qual o tipo de operacao
+        if cCampo == 'Z50_DESCRI'
+            //setErrorMessage retorna o texto para a mensagem padrao mvc
+            oModel:setErrorMessage(,,,,'ERRO DE VALIDACAO', 'ESSE CAMPO NAO PODE SER EDITADO')
+            lValid := .F. 
+        endif
+    endif
+
+Return lValid
+
+/*/{Protheus.doc} fnModPos
+    Funcao de validacao final do modelo de dados
+    @type  Static Function
+/*/
+Static Function fnModPos(oModel)
+
+    local lValid := .T.
+    
+Return lValid
+
+/*/{Protheus.doc} fnCommit
+    Funcao executada para gravacao dos dados
+    @type  Static Function
+/*/
+Static Function fnCommit(oModel)
+
+    local lCommit := fwFormCommit(oModel) //funcao que faz a gravacao dos dados e retorna se foram gravados ou nao
+    
+Return lCommit
+
+/*/{Protheus.doc} fnCancel
+    Funcao executada para validacao do cancelamento dos dados
+    @type  Static Function
+/*/
+Static Function fnCancel(oModel)
+    
+    local lCancel := fwFormCancel(oModel) //fwFormCancel desfaz "reservas" que precisam ser desfeitas (confirmsx8 por exemplo)
+
+
+Return lCancel
+
 /*/{Protheus.doc} U_GCTT001
     Funcao para execucao do gatilho de codigo
     @type  Function
