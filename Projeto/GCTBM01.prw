@@ -87,10 +87,13 @@ Static Function modeldef
     local oModel
     local oStruct
     local aTrigger
-    local bModelPre := {|x| fnModPre(x)} //evento de pre-validacao de modelo
-    local bModelPos := {|x| fnModPos(x)} //validacao tudook - identifica a ultima validacao executada na aplicacao.
-    local bCommit   := {|x| fnCommit(x)} //funcao que fara a gravacao dos dados no banco, retorno verdadeiro ou falso para indicar a gravacao ou nao 
-    local bCancel   := {|x| fnCancel(x)} //funcao executada quando o usuario clicar em cancelar
+    local bModelPre     := {|x| fnModPre(x)} //evento de pre-validacao de modelo
+    local bModelPos     := {|x| fnModPos(x)} //validacao tudook - identifica a ultima validacao executada na aplicacao.
+    local bCommit       := {|x| fnCommit(x)} //funcao que fara a gravacao dos dados no banco, retorno verdadeiro ou falso para indicar a gravacao ou nao 
+    local bCancel       := {|x| fnCancel(x)} //funcao executada quando o usuario clicar em cancelar
+    local bFieldPre     := {|oSubModel, cIdAction, cIdField, xValue| fnFieldPre(oSubModel, cIdAction, cIdField, xValue)}
+    local bFieldPos     := {|oSubModel|                              fnFieldPos(oSubModel)}
+    local bFieldLoad    := {|oSubModel, lCopy|                       fnFieldLoad(oSubModel, lCopy)} 
 
     oStruct         := fwFormStruct(1, 'Z50') //objeto gerado a partir da FWFormStruct
     oModel          := mpFormModel():new('MODEL_GCTBM001', bModelPre, bModelPos, bCommit, bCancel) 
@@ -100,7 +103,7 @@ Static Function modeldef
     oStruct:addTrigger(aTrigger[1], aTrigger[2], aTrigger[3], aTrigger[4]) //metodo do struct que aciona o trigger. REceber as 4 primeiras posicoes que o fwstrutrigger retornar
     oStruct:setProperty('Z50_TIPO', MODEL_FIELD_WHEN, {|| inclui}) //inclui-> variavel publica que vai verificar se estou numa inclusao
 
-    oModel:addFields('Z50MASTER',, oStruct) //cuidado, na modeldef é addFields no plural
+    oModel:addFields('Z50MASTER',, oStruct, bFieldPre, bFieldPos, bFieldLoad) //cuidado, na modeldef é addFields no plural
     oModel:setDescription('Tipos de contratos')
     oModel:setPrimaryKey({'Z50_FILIAL', 'Z50_CODIGO'}) // método não obrigatório desde que isso esteja definido na sx2 (diciionario de dados)
 
@@ -132,7 +135,28 @@ Return lValid
 /*/
 Static Function fnModPos(oModel)
 
-    local lValid := .T.
+    local lValid        := .T.
+    local cAliasSQL     := ''
+    local nOperation    := oModel:getOperation()
+
+    if nOperation == 5
+        cAliasSQL           := getNextAlias()
+
+        BeginSQL alias cAliasSQL
+            SELECT * FROM %table:Z51% Z51
+            WHERE Z51.%notdel%
+            AND Z51_FILIAL = %exp:xFilial('Z51')%
+            AND Z51_TIPO = %exp:Z50->Z50_CODIGO%
+            LIMIT 1
+        EndSQL
+
+        (cAliasSQL) -> (dbEval({|| lExist := .T.}), dbCloseArea())
+
+        if lExist
+            oModel:setErrorMessage(,,,,'Registro já utilizado', 'Esse registro não pode ser excluido pois já foi utilizado')
+            return .F.
+        endif
+    endif
     
 Return lValid
 
@@ -144,18 +168,32 @@ Static Function fnCommit(oModel)
 
     local lCommit := fwFormCommit(oModel) //funcao que faz a gravacao dos dados e retorna se foram gravados ou nao
     
+    /*
+        parametros da fwFormCommit (alem do oModel):
+        bBefore: bloco de codigo executado antes da gravacao de dados e antes da transacao
+        bAfter: bloco de codigo executado depois que a gravacao é concluida e depois do encerramento de transacoes
+        bAfterTTS: executada apos a conclusao do controle de transacoes
+        bInTTS: funcao que deve ser executada DURANTE o controle de transacoes
+        bBeforeTTS: funcao executada imediatamente antes do controle de transacoes
+        bIntegEAI: funcao executada durante uma integracao EAI
+    */
+
+    if .not. lCommit
+        oModel:setErrorMessage(,,,,'Gravacao nao efetuada', 'Ocorreu um erro na gravação dos dados')
+    endif
+
 Return lCommit
 
 /*/{Protheus.doc} fnCancel
     Funcao executada para validacao do cancelamento dos dados
     @type  Static Function
 /*/
-Static Function fnCancel(oModel)
+Static Function fnCancel(oModel) //tem a função apenas de executar operações referentes ao cancelamento
     
     local lCancel := fwFormCancel(oModel) //fwFormCancel desfaz "reservas" que precisam ser desfeitas (confirmsx8 por exemplo)
 
 
-Return lCancel
+Return lCancel //se o retorno for falso a tela é mantida aberta
 
 /*/{Protheus.doc} U_GCTT001
     Funcao para execucao do gatilho de codigo
@@ -206,3 +244,28 @@ Function U_GCTT001
 
 
 Return cNovoCod
+
+/*/{Protheus.doc} fnFieldPre
+    pre validacao do submodelo
+    @type  Static Function
+/*/
+Static Function fnFieldPre(oSubModel, cIdAction, cIdField, xValue)
+    
+Return return_var
+
+/*/{Protheus.doc} fnFieldPos
+    validacao tudook do submedlo
+    @type  Static Function
+/*/
+Static Function fnFieldPos(oSubModel)
+    local lValid := .T.
+
+Return lValid
+
+/*/{Protheus.doc} fnFieldLoad
+    funcao para carregamento de dados
+    @type  Static Function
+/*/
+Static Function fnFieldLoad(oSubModel, lCopy)
+    
+Return formLoadField(oSubModel, lCopy)
