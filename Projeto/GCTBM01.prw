@@ -250,8 +250,26 @@ Return cNovoCod
     @type  Static Function
 /*/
 Static Function fnFieldPre(oSubModel, cIdAction, cIdField, xValue)
-    
-Return return_var
+
+    local lValid    := .T.
+    // local oModel    := fwModelActive() // pega o model ativo no momento
+
+    // if cIdAction == 'CANSETVALUE' //evento que verifica se o campo do submodelo pode ser alterado ou não
+    //     if cIdField == 'Z50_CODIGO'
+    //         lValid := .F. //processo que vai indicar que o campo de codigo não poderá ser alterado
+    //     endif
+    // endif
+
+    // if cIdAction == 'SETVALUE' //validar se um campo pode receber um conteudo ou não
+    //     if cIdField == 'Z50_DESCRI'
+    //         if empty(xValue)
+    //             oSubModel:setErrorMessage(,,,,'NAOVAZIO', 'O conteudo nao pode ser vazio')
+    //             lValid := .F.
+    //         endif
+    //     endif
+    // endif
+
+Return lValid
 
 /*/{Protheus.doc} fnFieldPos
     validacao tudook do submedlo
