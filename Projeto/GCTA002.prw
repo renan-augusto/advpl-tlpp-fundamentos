@@ -39,7 +39,7 @@ Function U_GCTA002M(cAlias, nReg, nOpc)
     local bCancelar     := {|| (nSalvar := 0, oDlg:end())}
     local aButtons      := array(0)
     local aHeader       := fnGetHeader()
-    local aCols         := fnGetCols()
+    local aCols         := fnGetCols(nOpc, aHeader)
 
     private aGets       := array(0)
     private aTela       := array(0)
@@ -73,15 +73,15 @@ Function U_GCTA002M(cAlias, nReg, nOpc)
                                    aPObj[2,3]       ,; //coordenada final, coluna final
                                    aPObj[2,4]       ,; //coordenada final, linha final
                                    nStyle           ,; // opcoes que podem ser executadas
-                                   '.T.'            ,; // validacao de mudanca de linha
-                                   '.T.'            ,; // validacao final
+                                   'allwaysTrue()'  ,; // validacao de mudanca de linha
+                                   'allwaysTrue()'  ,; // validacao final
                                    '+Z52_ITEM'      ,; // definicao do campo incremental
                                    Nil              ,; // lista dos campos que podem ser alterados (passaria num vetor)
                                    0                ,; // fixo
                                    9999             ,; // total de linhas
-                                   '.T.'            ,; // funcao que validara cada campo preenchido
+                                   'allwaysTrue()'  ,; // funcao que validara cada campo preenchido
                                    nil              ,; // fixo
-                                   '.T.'            ,; // funcao que ira validar se a linha pode ser deletada
+                                   'allwaysTrue()'  ,; // funcao que ira validar se a linha pode ser deletada
                                    oDlg             ,; // objeto proprietario
                                    aHeader          ,; // Vetor com as configuracoes dos campos
                                    aCols            )  // Vetor com os conteudos dos campos
@@ -104,6 +104,12 @@ Static Function fnGetHeader
     SX3->(dbSetOrder(1), dbSeek("Z52"))
 
     while .not. SX3->(eof() .and. SX3->X3_ARQUIVO == 'Z52')
+
+        //evitando com que o numero do contrato e a filial aparecam na tela
+        if alltrim(SX3->X3_CAMPO) $ 'Z52_FILIAL|Z52_NUMERO'
+            SX3->(dbSkip())
+            Loop
+        endif
 
         aAux := {}
         aadd(aAux, SX3->X3_TITULO)
@@ -131,3 +137,33 @@ Static Function fnGetHeader
     enddo
 
 Return aHeader
+
+/*/{Protheus.doc} fnGetCols
+    retorna o conteudo do vetor aCols
+    @type  Static Function
+/*/
+Static Function fnGetCols(nOpc, aHeader)
+    
+    local aCols := array(0)
+    local aAux  := array(0)
+
+    if nOpc == 3 // operacao de inclusao
+        //fuincao criavar cria um conteudo para o campo baseado na configuracao dele
+        aEval(aHeader, {|x| aadd(aAux, criavar(x[2],.T.))}) //executa um laco de repeticao dentro de um vetor(tipo um map)
+        aadd(aAux, .F.)
+        aadd(aCols, aAux)
+        return aCols
+    endif
+
+    // alteracao + visualizacao + exclusao
+    Z52->(dbSetOrder(1), dbSeek(Z51->(Z51_FILIAL+Z51_NUMERO)))
+
+    while .not. Z52->(eof()) .and. Z52->(Z52_FILIAL+Z52_NUMERO) == Z51->(Z51_FILIAL+Z51_NUMERO)
+        aAux := {}
+        aEval(aHeader,{|x| aadd(aAux, Z52->&(x[2]))})
+        aadd(aAux, .F.)
+        aadd(aCols, aAUx)
+        Z52->(dbSkip())
+    enddo
+
+Return aCols
