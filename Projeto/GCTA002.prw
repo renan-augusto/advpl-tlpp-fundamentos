@@ -1,4 +1,5 @@
 #include 'totvs.ch'
+#include 'tbiconn.ch'
 
 
 /*/{Protheus.doc} U_GCTA002
@@ -92,7 +93,8 @@ Function U_GCTA002M(cAlias, nReg, nOpc)
     oDlg:activate()
 
     if nSalvar == 1
-        fnGravar(nOpc)
+        //funcao de gravacao dos dados
+        fnGravar(nOpc, aHeader, oGet:aCols)
         //preciso verificar se depois da gravacao se o getsxenum foi acionado
         if  __lSX8
             confirmsx8() //vai confirmar e avançar para o próximo número 
@@ -109,9 +111,64 @@ Return
     funcao auxiliar para gravacao
     @type  Static Function
 /*/
-Static Function fnGravar(nOpc)
+Static Function fnGravar(nOpc, aHeader, aCols)
     
-Return return_var
+    local x, y
+    local nCampos
+    local cCampo
+    local xConteudo
+    local aLinha[0]
+    local lDelete
+
+    BEGIN TRANSACTION // abertura do controle de transacoes
+    
+    Do Case
+    
+        Case nOpc == 3 // 
+
+            nCampos := Z51->(fCount())
+
+            Z51->(reclock(alias(), .T.))
+                //gravacao dos dados do cabecalho
+                for x := 1 to nCampos //so vai atualizar os campos visiveis na tela
+                    Z51->&(fieldname(x)) := M->&(fieldname(x))
+                next
+
+                Z51->Z51_FILIAL := xFilial('Z51') // faz o tratamento da filial pois ela nao esta na tela
+            Z51->(msunlock())
+
+            for x := 1 to Len(aCols)
+                
+                aLinha := aClone(aCols[x])
+                lDelete := aLinha[len(aLinha)] 
+                //o campo que determina se o registro esta deletado fica na ultima posicao
+                //por isso foi utilizado o len(aLinha)
+
+                if lDelete
+                    Loop
+                endif 
+
+                Z52->(reclock(alias(), .T.))
+                    for y := 1 to Len(aHeader)
+                        cCampo := aHeader[y, 2] //segunda posicao vai ser o nome do nosso campo
+                        xConteudo := aCols[x,y] //recuperando o conteudo do campo
+                        Z52->&(cCampo) := xConteudo
+                    next
+
+                    Z52->Z52_FILIAL := xFilial('Z52')
+                    Z52->Z52_NUMERO := M->Z51_NUMERO
+
+                Z52->(msunlock())
+
+            next
+        Case nOpc == 4 // alteracao
+
+        Case nopc == 5 // exclusao 
+        
+    EndCase
+
+    END TRANSACTION // encerramento do controle de transacoes
+Return
 
 /*/{Protheus.doc} fnGetHeader
     gera as configuracoes dos campos da msNewGetDados
