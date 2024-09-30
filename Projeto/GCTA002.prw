@@ -150,6 +150,7 @@ Static Function fnGetCols(nOpc, aHeader)
     if nOpc == 3 // operacao de inclusao
         //fuincao criavar cria um conteudo para o campo baseado na configuracao dele
         aEval(aHeader, {|x| aadd(aAux, criavar(x[2],.T.))}) //executa um laco de repeticao dentro de um vetor(tipo um map)
+        aAux[1] := '001' //resolvendo inicialização do campo item
         aadd(aAux, .F.)
         aadd(aCols, aAux)
         return aCols
