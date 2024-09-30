@@ -62,6 +62,7 @@ Function U_GCTA002M(cAlias, nReg, nOpc)
 
     // -- Cabecalho 
     regToMemory(cAlias, if(nOpc == 3, .T., .F.), .T.) //outra forma de criar variavel de memoria
+    M->Z51_NUMERO := getSxeNum('Z51', 'Z51_NUMERO') //gerando o numero de forma incremental e automatica
     msmGet():new(cAlias, nReg, nOpc,,,,,aPObj[1]) //realiza montagem do objeto
     // enchoice(cAlias, nReg, nOpc,,,,,aPObj[1]) //faz a mesma coisa que o msmGet faz porem é uma funcao
     enchoicebar(oDlg, bSalvar, bCancelar,,aButtons)
@@ -90,7 +91,27 @@ Function U_GCTA002M(cAlias, nReg, nOpc)
 
     oDlg:activate()
 
-Return 
+    if nSalvar == 1
+        fnGravar(nOpc)
+        //preciso verificar se depois da gravacao se o getsxenum foi acionado
+        if  __lSX8
+            confirmsx8() //vai confirmar e avançar para o próximo número 
+        endif
+    else  //caso usuario clique em cancelar
+        if __lSX8 //nesse if eu libero aquele numero novamente para uso. 
+            rollbackSX8() 
+        endif
+    endif
+
+Return
+
+/*/{Protheus.doc} fnGravar(nOpc)
+    funcao auxiliar para gravacao
+    @type  Static Function
+/*/
+Static Function fnGravar(nOpc)
+    
+Return return_var
 
 /*/{Protheus.doc} fnGetHeader
     gera as configuracoes dos campos da msNewGetDados
