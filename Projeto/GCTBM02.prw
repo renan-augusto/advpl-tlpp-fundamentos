@@ -29,10 +29,11 @@ Static Function menudef
 
     ADD OPTION aRotina TITLE 'Pesquisar'    ACTION 'axPesqui'         OPERATION 1 ACCESS 0
     ADD OPTION aRotina TITLE 'Visualizar'   ACTION 'VIEWDEF.GCTBM02'  OPERATION 2 ACCESS 0
-    ADD OPTION aRotina TITLE 'Pesquisar'    ACTION 'VIEWDEF.GCTBM02'  OPERATION 3 ACCESS 0
-    ADD OPTION aRotina TITLE 'Pesquisar'    ACTION 'VIEWDEF.GCTBM02'  OPERATION 4 ACCESS 0
-    ADD OPTION aRotina TITLE 'Pesquisar'    ACTION 'VIEWDEF.GCTBM02'  OPERATION 5 ACCESS 0
-    ADD OPTION aRotina TITLE 'Pesquisar'    ACTION 'VIEWDEF.GCTBM02'  OPERATION 6 ACCESS 0
+    ADD OPTION aRotina TITLE 'Incluir'      ACTION 'VIEWDEF.GCTBM02'  OPERATION 3 ACCESS 0
+    ADD OPTION aRotina TITLE 'Alterar'      ACTION 'VIEWDEF.GCTBM02'  OPERATION 4 ACCESS 0
+    ADD OPTION aRotina TITLE 'Excluir'      ACTION 'VIEWDEF.GCTBM02'  OPERATION 5 ACCESS 0
+    ADD OPTION aRotina TITLE 'Imprimir'     ACTION 'VIEWDEF.GCTBM02'  OPERATION 8 ACCESS 0
+    ADD OPTION aRotina TITLE 'Copiar'       ACTION 'VIEWDEF.GCTBM02'  OPERATION 9 ACCESS 0
     
 
 Return aRotina
@@ -44,9 +45,10 @@ Static Function viewdef
     local oModel
     local oStructZ51
     local oStructZ52
+    
 
     oStructZ51          := fwFormStruct(2, 'Z51')
-    oStructZ52          := fwFormStruct(2, 'Z52')
+    oStructZ52          := fwFormStruct(2, 'Z52', {|cCampo| .not. alltrim(cCampo) $ 'Z52_NUMERO'})
     oModel              := fwLoadModel('GCTBM02') //indico o nome do arquivo e ela faz a carga do oModel que está naquele arquivo
     oView               := fwFormView():new()
 
@@ -71,7 +73,7 @@ Static Function modeldef
     local bModelPre     := {|oModel| .T.}
     local bModelPos     := {|oModel| .T.}
     local bCommit       := {|oModel| fwFormCommit(oModel)} //retorna .T. ou .F. dependendo se ele conseguiu gravar ou nao
-    local bCancel       := {|oModel| fwFormCancel(oModel)}
+    local bCancel       := {|oModel| fCancel(oModel)}
     local bGridpre      := {|oGridModel,nLine,cAction,cField,xValue,xCurrentValue| vGridPre(oGridModel,nLine,cAction,cField,xValue,xCurrentValue,1)}
     local bLinePre      := {|oGridModel,nLine,cAction,cField,xValue,xCurrentValue| vGridPre(oGridModel,nLine,cAction,cField,xValue,xCurrentValue,2)}
     local bLinePos      := {|oGridModel, nLine| vGridPos(oGridModel, nLine, 1)}
@@ -79,7 +81,21 @@ Static Function modeldef
     local bGridLoad     := {|oGridModel, lCopy| vGridLoad(oGridModel, lCopy)}
 
     oStructZ51  := fwFormStruct(1, 'Z51')
-    oStructZ52  := fwFormStruct(2, 'Z52')
+    oStructZ52  := fwFormStruct(1, 'Z52')
+
+    //indicando quais campos poderão ser editados
+    bModelWhen  := {|| oModel:getOperation() == 3 .or. oModel:getOperation() == 9}
+    bWhenEmiss  := {|| vWhenEmis(oModel)}
+    bModelInit  := {|| getSxeNum("Z51", "Z51_NUMERO")}
+    oStructZ51:setProperty('Z51_NUMERO'     ,MODEL_FIELD_INIT, bModelInit)
+    oStructZ51:setProperty('Z51_TIPO'       ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_NUMERO'     ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_CLIENT'     ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_LOJA'       ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_NOMECLI'    ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_VALOR'      ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_QTDMED'     ,MODEL_FIELD_WHEN, bModelWhen)
+    oStructZ51:setProperty('Z51_EMISSA'     ,MODEL_FIELD_WHEN, bWhenEmiss)
 
     oModel      := mpFormModel():new('MODEL_GCTBM02', bModelPre, bModelPos, bCommit, bCancel)
     oModel:setDescription('Contratos')
@@ -89,7 +105,7 @@ Static Function modeldef
     oModel:addGrid('Z52DETAIL', 'Z51MASTER', oStructZ52, bLinePre, bLinePos, bGridpre, bGridPos, bGridLoad)
     oModel:getModel('Z52DETAIL'):setUniqueLine({'Z52_ITEM'})
     oModel:setOptional('Z52DETAIL', .T.) //indica se o componente de detalhe é opcional ou obrigatorio
-    oModel:setRelation('Z52DETAIL', {{'Z52_FILIAL', 'xFilial("Z52")'}, {"Z52_NUMERO", "Z51_NUMERO"}}) //indico componente relacionado com a principal
+    oModel:setRelation('Z52DETAIL', {{'Z52_FILIAL', 'xFilial("Z52")'}, {"Z52_NUMERO", "Z51_NUMERO"}, Z52->(indexKey(1))}) //indico componente relacionado com a principal
 
 Return oModel
 
@@ -110,6 +126,37 @@ Return return_var
 
 Static Function vGridLoad(oGridModel, lCopy)
 
-    local aRetorno      := formGridLoad(oGridModel, lCopy)
+    local aRetorno      := formLoadGrid(oGridModel, lCopy)
 
 Return aRetorno
+
+Static Function fCancel(oModel)
+    
+    Local lCancel   := fwFormCancel(oModel)
+
+    if lCancel
+        
+        if __lSx8
+            rollbackSX8()
+        endif
+
+    endif
+
+Return lCancel
+
+Static Function vWhenEmis(oModel)
+
+    local lWhen := .T.
+
+    if oModel:getOperation() == 4
+        
+        dDtAssinBd  := Z51->Z51_DTASSI
+        dDtAssinMd  := oModel:getModel('Z51MASTER'):getValue('Z51_DTASSI')
+
+        if .not. empty(dDtAssinBd)
+            lWhen := .F.
+        endif
+
+    endif
+    
+Return lWhen
