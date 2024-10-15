@@ -99,6 +99,15 @@ Static Function modeldef
     oStructZ51:setProperty('Z51_EMISSA'     ,MODEL_FIELD_WHEN,  bWhenEmiss)
     oStructZ51:setProperty('*'              ,MODEL_FIELD_VALID, bValid    )
 
+    //parametro, campo que vai executar o gatilho, campo que vai receber a descrição do gatilho, regra 
+    //ultimo parametro é só uma sequencia para indicar que o gatilho é o 001
+    //o gatilho tem que ser executado fora do programa principal. por isso precisa ser executado fora do programa principal 
+    aTrigger1 := fwStruTrigger("Z52_CODPRD", "Z52_DESPRD", "U_GCTT002(1)", .F., Nil, Nil, Nil, Nil, "001")
+    aTrigger2 := fwStruTrigger("Z52_CODPRD", "Z52_LOCEST", "U_GCTT002(2)", .F., Nil, Nil, Nil, Nil, "002")
+
+    oStructZ52:addTrigger(aTrigger1[1], aTrigger1[2], aTrigger1[3], aTrigger1[4])
+    oStructZ52:addTrigger(aTrigger2[1], aTrigger2[2], aTrigger2[3], aTrigger2[4])
+
     oModel      := mpFormModel():new('MODEL_GCTBM02', bModelPre, bModelPos, bCommit, bCancel)
     oModel:setDescription('Contratos')
     oModel:addFields('Z51MASTER',,oStructZ51) //vinculado com o componente field (singular) da viewdef
@@ -212,3 +221,26 @@ Static Function vValid
         EndCase
     
 Return lValid
+
+Function U_GCTT002(nOpc)
+
+    local oModel
+    local cCodPrd
+    
+    Do Case
+        
+        Case nOpc == 1 //Gatilho de descricao
+            
+            oModel := fwModelActive()
+            cCodPrd := oModel:getModel('Z52DETAIL'):getValue('Z52_CODPRD')
+            SB1->(dbSetOrder(1),dbSeek(xFilial(alias())+cCodPrd))
+            return LEFT(SB1->B1_DESC, tamSx3('Z52_DESPRD')[1])
+        
+        Case nOpc == 2 //Gatilho de local de estoque
+
+            return SB1->B1_LOCPAD
+
+
+    EndCase
+
+Return
