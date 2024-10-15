@@ -98,6 +98,7 @@ Static Function modeldef
     oStructZ51:setProperty('Z51_QTDMED'     ,MODEL_FIELD_WHEN,  bModelWhen)
     oStructZ51:setProperty('Z51_EMISSA'     ,MODEL_FIELD_WHEN,  bWhenEmiss)
     oStructZ51:setProperty('*'              ,MODEL_FIELD_VALID, bValid    )
+    oStructZ51:setProperty('*'              ,MODEL_FIELD_VALID, bValid    )
 
     //parametro, campo que vai executar o gatilho, campo que vai receber a descrição do gatilho, regra 
     //ultimo parametro é só uma sequencia para indicar que o gatilho é o 001
@@ -216,8 +217,16 @@ Static Function vValid
                     oModel:getModel('Z51MASTER'):setValue('Z51_NOMCLI', left(SA1->A1_NOME, tamSx3('Z51_NOMCLI')[1]))
                     lValid := .T.
                 endif
-            endif      
+            endif
+        Case cCampo == 'Z52_QTD' .or. cCampo == 'Z52_VLRUNI' //atualizar os campos de valor e saldo do valor     
             
+            nQtd := oModel:getModel('Z52DETAIL'):getValue('Z52_QTD')
+            nVlrUni := oModel:getModel('Z52DETAIL'):getValue('Z52_VLRUNI')
+            nValor := round(nQtd * nVlrUni, tamSx3('Z52_VALOR')[2])
+
+            fwFldPut('Z52_VALOR', nValor)
+            fwFldPut('Z52_SALDO', nValor)
+
         EndCase
     
 Return lValid
