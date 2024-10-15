@@ -52,6 +52,12 @@ Static Function viewdef
     oModel              := fwLoadModel('GCTBM02') //indico o nome do arquivo e ela faz a carga do oModel que está naquele arquivo
     oView               := fwFormView():new()
 
+    oStructZ52:setProperty('Z52_VALOR', MVC_VIEW_CANCHANGE, .F.)
+    oStructZ52:setProperty('Z52_SALDO', MVC_VIEW_CANCHANGE, .F.)
+    oStructZ52:setProperty('Z52_QTDATU', MVC_VIEW_CANCHANGE, .F.)
+    oStructZ52:setProperty('Z52_VLRMED', MVC_VIEW_CANCHANGE, .F.)
+    oStructZ52:setProperty('Z52_QTDMED', MVC_VIEW_CANCHANGE, .F.)
+
     oView:setModel(oModel)
     oView:addField('Z51MASTER', oStructZ51, 'Z51MASTER')
     oView:addGrid('Z52DETAIL', oStructZ52, 'Z52DETAIL')
