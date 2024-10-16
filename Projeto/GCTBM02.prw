@@ -52,6 +52,7 @@ Static Function viewdef
     oModel              := fwLoadModel('GCTBM02') //indico o nome do arquivo e ela faz a carga do oModel que está naquele arquivo
     oView               := fwFormView():new()
 
+    oStructZ51:setProperty('Z51_VALOR', MVC_VIEW_CANCHANGE,  .F.)
     oStructZ52:setProperty('Z52_VALOR', MVC_VIEW_CANCHANGE, .F.)
     oStructZ52:setProperty('Z52_SALDO', MVC_VIEW_CANCHANGE, .F.)
     oStructZ52:setProperty('Z52_QTDATU', MVC_VIEW_CANCHANGE, .F.)
@@ -78,7 +79,7 @@ Static Function modeldef
     local oStructZ52
     local bModelPre     := {|oModel| .T.}
     local bModelPos     := {|oModel| .T.}
-    local bCommit       := {|oModel| fwFormCommit(oModel)} //retorna .T. ou .F. dependendo se ele conseguiu gravar ou nao
+    local bCommit       := {|oModel| fCommit(oModel)} //retorna .T. ou .F. dependendo se ele conseguiu gravar ou nao
     local bCancel       := {|oModel| fCancel(oModel)}
     local bGridpre      := {|oGridModel,nLine,cAction,cField,xValue,xCurrentValue| vGridPre(oGridModel,nLine,cAction,cField,xValue,xCurrentValue,1)}
     local bLinePre      := {|oGridModel,nLine,cAction,cField,xValue,xCurrentValue| vGridPre(oGridModel,nLine,cAction,cField,xValue,xCurrentValue,2)}
@@ -91,6 +92,7 @@ Static Function modeldef
     oStructZ52  := fwFormStruct(1, 'Z52')
 
     //indicando quais campos poderão ser editados
+    //se eu bloquear um campo na regra de negocio eu nao consigo altera-lo em momento algum (inclusive no commit)
     bModelWhen  := {|| oModel:getOperation() == 3 .or. oModel:getOperation() == 9}
     bWhenEmiss  := {|| vWhenEmis(oModel)}
     bModelInit  := {|| getSxeNum("Z51", "Z51_NUMERO")}
@@ -100,7 +102,6 @@ Static Function modeldef
     oStructZ51:setProperty('Z51_CLIENT'     ,MODEL_FIELD_WHEN,  bModelWhen)
     oStructZ51:setProperty('Z51_LOJA'       ,MODEL_FIELD_WHEN,  bModelWhen)
     oStructZ51:setProperty('Z51_NOMECLI'    ,MODEL_FIELD_WHEN,  bModelWhen)
-    oStructZ51:setProperty('Z51_VALOR'      ,MODEL_FIELD_WHEN,  bModelWhen)
     oStructZ51:setProperty('Z51_QTDMED'     ,MODEL_FIELD_WHEN,  bModelWhen)
     oStructZ51:setProperty('Z51_EMISSA'     ,MODEL_FIELD_WHEN,  bWhenEmiss)
     oStructZ51:setProperty('*'              ,MODEL_FIELD_VALID, bValid    )
@@ -137,9 +138,9 @@ Return lValid
 //pos validacao do objeto do submodelo grid
 Static Function vGridPos(oGridModel, nLine, nOpc)
 
-    local lValid
+    local lValid := .T.
     
-Return return_var
+Return lValid
 
 
 Static Function vGridLoad(oGridModel, lCopy)
@@ -147,6 +148,30 @@ Static Function vGridLoad(oGridModel, lCopy)
     local aRetorno      := formLoadGrid(oGridModel, lCopy)
 
 Return aRetorno
+
+Static Function fCommit(oModel)
+    
+    local oModelFld := oModel:getModel('Z51MASTER')
+    local oModelGrid := oModel:getModel('Z52DETAIL')
+    local lCommit := .F.
+    local nVlrTotal := 0
+    local nItens := oModelGrid:length()
+    local x
+
+    for x := 1 to nItens
+        
+        oModelGrid:goLine(x)
+        nVlrTotal += oModelGrid:getValue('Z52_VALOR')
+
+    next
+
+    oModelFld:setValue('Z51_Valor', nVlrTotal)
+
+    lCommit := fwFormCommit(oModel)
+
+
+Return lCommit
+
 
 Static Function fCancel(oModel)
     
