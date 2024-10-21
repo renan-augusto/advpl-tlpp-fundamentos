@@ -46,6 +46,12 @@ Function U_GCTA003M(cAlias, nReg, nOpc)
 
     //instancia a fonte que vai ser utilizada. Fonte disponivel e aquela do SO 
     private oFonte      := tFont():new('Courier New',,20,,.T.)  
+    //objeto responsavel pela construcao dos rotulos dos campos no cabecalho 
+    private oSay
+    private oGetMed
+
+    private cNumZ53     := space(tamSx3('Z53_NUMMED')[1])
+
 
     //tambem funciona se eu acessar a propriedade e fazer o preenchimento
     // oFonte:lItalic := .T. 
@@ -67,8 +73,103 @@ Function U_GCTA003M(cAlias, nReg, nOpc)
                                      .T.            ) // indica que as coordenadas serao em pixel
 
     // -- Cabecalho 
-    // -- Construcao do cabecalho - modelo 2 #
     enchoicebar(oDlg, bSalvar, bCancelar,,aButtons)
+
+    //o rotulo, terceiro parametro, tem que estar num bloco de codigo
+    //pois posso defini-lo com um rotulo que muda de acordo com a posicao
+    oSay := tSay():new(;
+        40,; 
+        10,; 
+        {|| 'Medicao'},; 
+        oDlg,; 
+        nil,; 
+        oFonte,; 
+        nil,; 
+        nil,; 
+        nil,; 
+        .T.,; 
+        CLR_RED,;
+        CLR_WHITE,;
+        40,;
+        15) 
+    
+
+    oSay := tSay():new(;
+        40,; 
+        100,; 
+        {|| 'Emissao'},; 
+        oDlg,; 
+        nil,; 
+        oFonte,; 
+        nil,; 
+        nil,; 
+        nil,; 
+        .T.,; 
+        CLR_RED,;
+        CLR_WHITE,;
+        40,;
+        15)
+    
+    oSay := tSay():new(;
+        40,; 
+        190,; 
+        {|| 'Contrato'},; 
+        oDlg,; 
+        nil,; 
+        oFonte,; 
+        nil,; 
+        nil,; 
+        nil,; 
+        .T.,; 
+        CLR_RED,;
+        CLR_WHITE,;
+        40,;
+        15) 
+    
+    oSay := tSay():new(;
+        40,; 
+        280,; 
+        {|| 'Tipo'},; 
+        oDlg,; 
+        nil,; 
+        oFonte,; 
+        nil,; 
+        nil,; 
+        nil,; 
+        .T.,; 
+        CLR_RED,;
+        CLR_WHITE,;
+        40,;
+        15) 
+
+
+    //criacao dos campos
+    oGetMed := tGet():new(60,010,; //linha + coluna
+                         {|u| if(pCount() > 0, cNumZ53 := u, cNumZ53)},; //Bloco de codigo para atualizacao do conteudo do campo
+                         70,; //largura do campo
+                         10,; //altura do campo
+                         '@!',; // mascara do campo
+                         {|| .T.},; //bloco de codigo para validacao do conteudo
+                         CLR_BLACK,; //cor do texto
+                         CLR_WHITE,; //cor do fundo do conteudo do campo
+                         oFont,; //objeto de fonte do texto
+                         nil,; //parametro fixo
+                         nil,; //parametro fixo
+                         .T.,; //indicando que a coordenada eh em pixels
+                         nil,; //parametro fixo
+                         nil,; //parametro fixo
+                         {|| .T.},; //bloco de codigo para indicar que o campo esta editavel - X3_WHEN
+                         .T.,; //parametro fixo
+                         .F.,; //parametro fixo
+                         {|| },; //bloco de codigo executado na mudanca do conteudo 
+                        .T.,; //indica se o campo é somente leitura
+                        .F.,; //indica se o campo é de senha
+                        nil,; //parametro fixo
+                        'cNumZ53',; //nome da variavel associada ao campo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        .F.) //indica se o campo possui um botao auxiliar 
 
     // -- Area de Itens
     
