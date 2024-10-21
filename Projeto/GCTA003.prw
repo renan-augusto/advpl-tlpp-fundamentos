@@ -38,6 +38,9 @@ Function U_GCTA003M(cAlias, nReg, nOpc)
     local aButtons      := array(0)
     local aHeader       := fnGetHeader()
     local aCols         := fnGetCols(nOpc, aHeader)
+    local bValid        := {|| .T.}
+    local bWhen         := {|| .T.}
+    local bChange       := {|| }
 
     private oGet
     private aGets       := array(0)
@@ -48,9 +51,12 @@ Function U_GCTA003M(cAlias, nReg, nOpc)
     private oFonte      := tFont():new('Courier New',,20,,.T.)  
     //objeto responsavel pela construcao dos rotulos dos campos no cabecalho 
     private oSay
-    private oGetMed
+    private oGetZ53, oGetMed, oGetEmis, oGetZ51, oGetZ50
 
-    private cNumZ53     := space(tamSx3('Z53_NUMMED')[1])
+    private cNumZ53     := if(nOpc == 3, getsxenum('Z53', 'Z53_NUMMED'), Z53->Z53_NUMMED) //space(tamSx3('Z53_NUMMED')[1])
+    private dEmisZ53    := if(nOpc == 3, dDatabase, Z53->Z53_EMISSA)
+    private cNumZ51     := space(tamSx3('Z53_NUMERO')[1])
+    private cNumZ50     := space(tamSx3('Z53_TIPO')[1])
 
 
     //tambem funciona se eu acessar a propriedade e fazer o preenchimento
@@ -169,7 +175,105 @@ Function U_GCTA003M(cAlias, nReg, nOpc)
                         nil,; //parametro fixo
                         nil,; //parametro fixo
                         nil,; //parametro fixo
+                        .F.) //indica se o campo possui um botao auxiliar
+    
+        oGetEmis := tGet():new(60,100,; //linha + coluna
+                         {|u| if(pCount() > 0, dEmisZ53 := u, dEmisZ53)},; //Bloco de codigo para atualizacao do conteudo do campo
+                         70,; //largura do campo
+                         10,; //altura do campo
+                         '',; // mascara do campo
+                         bValid,; //bloco de codigo para validacao do conteudo
+                         CLR_BLACK,; //cor do texto
+                         CLR_WHITE,; //cor do fundo do conteudo do campo
+                         oFont,; //objeto de fonte do texto
+                         nil,; //parametro fixo
+                         nil,; //parametro fixo
+                         .T.,; //indicando que a coordenada eh em pixels
+                         nil,; //parametro fixo
+                         nil,; //parametro fixo
+                         bWhen,; //bloco de codigo para indicar que o campo esta editavel - X3_WHEN
+                         .T.,; //parametro fixo
+                         .F.,; //parametro fixo
+                         bChange,; //bloco de codigo executado na mudanca do conteudo 
+                        .F.,; //indica se o campo é somente leitura
+                        .F.,; //indica se o campo é de senha
+                        nil,; //parametro fixo
+                        'dEmisZ53',; //nome da variavel associada ao campo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        .F.) //indica se o campo possui um botao auxiliar
+        
+        //deixando modificar um campo com base numa condicao
+        oGetEmis:bWhen := {|| if(nOpc == 3, .T., .F.)}
+    
+        oGetZ51 := tGet():new(60,100,; //linha + coluna
+                        {|u| if(pCount() > 0, cNumZ51 := u, cNumZ51)},; //Bloco de codigo para atualizacao do conteudo do campo
+                        70,; //largura do campo
+                        10,; //altura do campo
+                        '',; // mascara do campo
+                        bValid,; //bloco de codigo para validacao do conteudo
+                        CLR_BLACK,; //cor do texto
+                        CLR_WHITE,; //cor do fundo do conteudo do campo
+                        oFont,; //objeto de fonte do texto
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        .T.,; //indicando que a coordenada eh em pixels
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        bWhen,; //bloco de codigo para indicar que o campo esta editavel - X3_WHEN
+                        .T.,; //parametro fixo
+                        .F.,; //parametro fixo
+                        bChange,; //bloco de codigo executado na mudanca do conteudo 
+                        .F.,; //indica se o campo é somente leitura
+                        .F.,; //indica se o campo é de senha
+                        nil,; //parametro fixo
+                        'cNumZ51',; //nome da variavel associada ao campo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
                         .F.) //indica se o campo possui um botao auxiliar 
+        
+        //associando a consulta padrão pelo nosso objeto
+        oGetZ51:cF3 := 'Z51' 
+        //funcao vazio, permite que o usuario passe pelo campo sem preenche-lo
+        //funcao existeCpo - funcao padrao do protheus, valida tabela e conteudo baseado na chave de busca passada
+        // na funcao existe cpo, se eu apontei o nome da variavel associada ao campo no objeto eu nao preciso passar esse segundo parametro
+        oGetZ51:bValid := {|| vazio() .or. existeCpo("Z51") }
+
+        //digitacao de um campo fazendo o preenchimento de outro campo
+        oGetZ51:bChange := {|| cNumZ50 := posicione("Z51", 1, xFilial("Z51")+cNumZ51, 'Z51_TIPO')}
+        oGetZ51:bWhen   := {|| if(nOpc == 3, .T., .F.)}
+
+        oGetZ50 := tGet():new(60,100,; //linha + coluna
+                        {|u| if(pCount() > 0, cNumZ50 := u, cNumZ50)},; //Bloco de codigo para atualizacao do conteudo do campo
+                        70,; //largura do campo
+                        10,; //altura do campo
+                        '',; // mascara do campo
+                        bValid,; //bloco de codigo para validacao do conteudo
+                        CLR_BLACK,; //cor do texto
+                        CLR_WHITE,; //cor do fundo do conteudo do campo
+                        oFont,; //objeto de fonte do texto
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        .T.,; //indicando que a coordenada eh em pixels
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        bWhen,; //bloco de codigo para indicar que o campo esta editavel - X3_WHEN
+                        .T.,; //parametro fixo
+                        .F.,; //parametro fixo
+                        bChange,; //bloco de codigo executado na mudanca do conteudo 
+                        .F.,; //indica se o campo é somente leitura
+                        .F.,; //indica se o campo é de senha
+                        nil,; //parametro fixo
+                        'cNumZ50',; //nome da variavel associada ao campo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        nil,; //parametro fixo
+                        .F.) //indica se o campo possui um botao auxiliar
+        
+        //deixando o campo não disponivel para edicao
+        oGetZ50:bWhen := {|| .F.}
 
     // -- Area de Itens
     
@@ -331,7 +435,7 @@ Static Function fnGetHeader
     while .not. SX3->(eof() .and. SX3->X3_ARQUIVO == 'Z53')
 
         //evitando com que o numero do contrato e a filial aparecam na tela
-        if alltrim(SX3->X3_CAMPO) $ 'Z53_FILIAL|Z53_NUMERO|Z53_NUMMED|Z53_EMISSAO|Z53_TIPO'
+        if alltrim(SX3->X3_CAMPO) $ 'Z53_FILIAL|Z53_NUMERO|Z53_NUMMED|Z53_EMISSA|Z53_TIPO'
             SX3->(dbSkip())
             Loop
         endif
