@@ -329,7 +329,8 @@ Function U_GCTA003V(nOpcao)
         cCampo := strtran(readvar(), "M->", "")
         do case
             case cCampo == 'Z53_CODPRD'
-                lvalid := fValidPrd()
+                lAchou := fValidPrd()
+                lvalid := vazio() .or. lAchou
         endcase
     elseif nOpcao == 4 // Validacao de delecao da linha
 
@@ -557,6 +558,7 @@ Static Function fValidPrd(param_name)
     (cAliasSQL)->(dbEval({|| nRecZ52 := R_E_C_N_O_}),dbCloseArea())
 
     if nRecZ52 == 0
+        M->Z53_CODPRD := space(tamSx3('Z53_CODPRD')[1])
         fwAlertError('Produto nao encotrado no contrato', 'Erro')
         return .f.        
     endif
