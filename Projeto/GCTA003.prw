@@ -55,8 +55,8 @@ Function U_GCTA003M(cAlias, nReg, nOpc)
 
     private cNumZ53     := if(nOpc == 3, getsxenum('Z53', 'Z53_NUMMED'), Z53->Z53_NUMMED) //space(tamSx3('Z53_NUMMED')[1])
     private dEmisZ53    := if(nOpc == 3, dDatabase, Z53->Z53_EMISSA)
-    private cNumZ51     := space(tamSx3('Z53_NUMERO')[1])
-    private cNumZ50     := space(tamSx3('Z53_TIPO')[1])
+    private cNumZ51     := if(nOpc == 3, space(tamSx3('Z53_NUMERO')[1]), Z53->Z53_NUMERO)
+    private cNumZ50     := if(nOpc == 3, space(tamSx3('Z53_TIPO')[1]), Z53->Z53_TIPO)
 
 
     //tambem funciona se eu acessar a propriedade e fazer o preenchimento
@@ -325,7 +325,12 @@ Function U_GCTA003V(nOpcao)
         lValid  := oGet:chkObrigat(n) //funcao que verifica se todos os campos obrigatorios foram preenchidos
     
     elseif nOpcao == 2 // validacao final
-    elseif nOpcao == 3 // Validacao dos campos 
+    elseif nOpcao == 3 // Validacao dos campos
+        cCampo := strtran(readvar(), "M->", "")
+        do case
+            case cCampo == 'Z53_CODPRD'
+                lvalid := fValidPrd()
+        endcase
     elseif nOpcao == 4 // Validacao de delecao da linha
 
     endif
@@ -365,11 +370,18 @@ Static Function fnGravar(nOpc, aHeader, aCols)
                 endif 
 
                 Z53->(reclock(alias(), .T.))
+                    Z53->Z53_FILIAL := xFilial('Z53')
+
                     for y := 1 to Len(aHeader)
                         cCampo := aHeader[y, 2] //segunda posicao vai ser o nome do nosso campo
                         xConteudo := aCols[x,y] //recuperando o conteudo do campo
                         Z53->&(cCampo) := xConteudo
                     next
+
+                    Z53->Z53_NUMERO := cNumZ51
+                    Z53->Z53_NUMMED := cNumZ53
+                    Z53->Z53_EMISSA := dEmisZ53
+                    Z53->Z53_TIPO   := cNumZ50
 
                     //-- Gravacao dos dados do cabecalho #
 
@@ -380,8 +392,9 @@ Static Function fnGravar(nOpc, aHeader, aCols)
 
             // gravacao dos itens
             for x := 1 to Len(aCols)
-
-                //Z53->(dbSetOrder(1), dbSeek(xFilial(alias())+M->Z53_NUMERO+aCols[x,1])) 
+                
+                //posiciona no registro
+                Z53->(dbSetOrder(1), dbSeek(xFilial(alias())+cNumZ51+cNumZ53+aCols[x,1])) 
                 lFound := Z53->(found()) //se a linha estiver deletada verificar se ela existe no banco de dados
                 aLinha := aClone(aCols[x])
                 lDelete := aLinha[len(aLinha)] 
@@ -414,8 +427,25 @@ Static Function fnGravar(nOpc, aHeader, aCols)
             next
 
         Case nopc == 5 // exclusao
+            
+            //posiciona no registro
+            Z53->(dbSetOrder(1), dbSeek(xFilial(alias())+cNumZ51+cNumZ53)) 
 
-        
+            if Z53->(Found())
+                while .T.
+                    Z53->(reclock(alias(), .f.), dbDelete(), msunlock())
+                    Z53->(dbSkip())
+
+                    if Z53->(eof())
+                        exit
+                    endif
+
+                    if .not. Z53->(Z53_FILIAL+Z53_NUMERO+Z53+Z53_NUMMED) == xFilial('Z53')+cNumZ51+cNumZ53
+                        exit
+                    endif
+                end
+            endif
+
     EndCase
 
     END TRANSACTION // encerramento do controle de transacoes
@@ -475,6 +505,8 @@ Static Function fnGetCols(nOpc, aHeader)
     
     local aCols := array(0)
     local aAux  := array(0)
+    //get area tras informacoes sobre o posicionamento do registro atual
+    local aAreaZ53 := Z53->(getArea()) 
 
     if nOpc == 3 // operacao de inclusao
         //fuincao criavar cria um conteudo para o campo baseado na configuracao dele
@@ -497,4 +529,49 @@ Static Function fnGetCols(nOpc, aHeader)
         Z53->(dbSkip())
     enddo
 
+    //restaura a area e retorna para o registro anteoriormente posicionado
+    restArea(aAreaZ53)
+
 Return aCols
+
+/*/{Protheus.doc} fValidPrd
+    vai validar o produto, ou seja se encontrar o produto retorna true
+    sera feito por meio de consulta sql
+/*/
+Static Function fValidPrd(param_name)
+    
+    local cAliasSql := ''
+
+    cAliasSql := getNextAlias()
+
+    BeginSQL alias cAliasSql
+        SELECT * FROM %table:Z52% Z52
+        WHERE Z52.%notdel%
+        AND Z52_FILIAL = %exp:xFilial('Z52')%
+        AND Z52_NUMERO = %exp:cNumZ51%
+        AND Z52_CODPRD = %exp:&(readvar())%
+    EndSql
+
+    nRecZ52 := 0
+
+    (cAliasSQL)->(dbEval({|| nRecZ52 := R_E_C_N_O_}),dbCloseArea())
+
+    if nRecZ52 == 0
+        fwAlertError('Produto nao encotrado no contrato', 'Erro')
+        return .f.        
+    endif
+
+    Z52->(dbSetOrder(1), dbGoTo(nRecZ52))
+    
+    //fazendo o preenchimento do campo de descricao
+    nLinha := oGet:nAt
+    aHeader := oGet:aHeader
+    aCols := oGet:aCols
+    
+    //como estamos na modelo2 da interface tradicional iremos utilizar gdFieldPut()
+    gdFieldPut('Z53_DESPRD', Z52->Z52_DESPRD, nLinha, aHeader, aCols)
+    gdFieldPut('Z53_LOCEST', Z52->Z52_LOCEST, nLinha, aHeader, aCols)
+
+
+
+Return .t.
