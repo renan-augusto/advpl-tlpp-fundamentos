@@ -331,6 +331,8 @@ Function U_GCTA003V(nOpcao)
             case cCampo == 'Z53_CODPRD'
                 lAchou := fValidPrd()
                 lvalid := vazio() .or. lAchou
+            case cCampo == 'Z53_QTD'
+                fUpdVlr()
         endcase
     elseif nOpcao == 4 // Validacao de delecao da linha
 
@@ -553,7 +555,7 @@ Static Function fValidPrd(param_name)
         AND Z52_CODPRD = %exp:&(readvar())%
     EndSql
 
-    nRecZ52 := 0
+    nRecZ52 := 0 
 
     (cAliasSQL)->(dbEval({|| nRecZ52 := R_E_C_N_O_}),dbCloseArea())
 
@@ -577,3 +579,31 @@ Static Function fValidPrd(param_name)
 
 
 Return .t.
+
+/*/{Protheus.doc} fUpdVlr
+/*/
+Static Function fUpdVlr(param_name)
+
+    local cAliasSql := ''
+
+    cAliasSql := getNextAlias()
+
+    BeginSQL alias cAliasSql
+        SELECT * FROM %table:Z52% Z52
+        WHERE Z52.%notdel%
+        AND Z52_FILIAL = %exp:xFilial('Z52')%
+        AND Z52_NUMERO = %exp:cNumZ51%
+        AND Z52_CODPRD = %exp:gdFieldGet('Z53_CODPRD', oGet:nAt, .F., oGet:aHeader, oGet:aCols)%
+    EndSql
+
+    nRecZ52 := 0 
+
+    (cAliasSQL)->(dbEval({|| nRecZ52 := R_E_C_N_O_}),dbCloseArea())
+    
+    if nRecZ52 > 0
+        Z52->(dbSetOrder(1), dbGoTo(nRecZ52))
+        //gdfieldput funcao utilizado para atualizar algum campo
+        gdFieldPut('Z53_VALOR', M->Z53_QTD * Z52->Z52_VLRUNI, oGet:nAt, oGet:aHeader, oGet:aCols)
+    endif
+
+Return 
