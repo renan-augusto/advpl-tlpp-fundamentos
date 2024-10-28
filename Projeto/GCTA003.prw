@@ -323,7 +323,12 @@ Function U_GCTA003V(nOpcao)
 
     if nOpcao == 1 //validacao de mudanca de linha
         lValid  := oGet:chkObrigat(n) //funcao que verifica se todos os campos obrigatorios foram preenchidos
-    
+        // verificar se o produto esta preenchido
+        cCodPrd := gdFieldGet('Z53_CODPRD', oGet:nAt, .F., oGet:aHeader, oGet:aCols)
+        if empty(cCodPrd)
+            fwAlertError('Codigo do produto nao foi preenchido', 'Erro')
+            lValid := .F.
+        endif
     elseif nOpcao == 2 // validacao final
     elseif nOpcao == 3 // Validacao dos campos
         cCampo := strtran(readvar(), "M->", "")
