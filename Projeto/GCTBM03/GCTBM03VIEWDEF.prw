@@ -14,7 +14,12 @@ Static Function viewdef
     oModel              := fwLoadModel('GCTBM03MODELDEF') //indico o nome do arquivo e ela faz a carga do oModel que está naquele arquivo
     oView               := fwFormView():new()
 
-    //campos somente leitura
+    //definindo a ordem na qual meus campos irão renderizar
+    oStrZ53CAB:setProperty('Z53_NUMERO', MVC_VIEW_ORDEM,  '01')
+    oStrZ53CAB:setProperty('Z53_TIPO', MVC_VIEW_ORDEM,  '02')
+    oStrZ53CAB:setProperty('Z53_NUMMED', MVC_VIEW_ORDEM,  '03')
+    oStrZ53CAB:setProperty('Z53_EMISSA', MVC_VIEW_ORDEM,  '04')
+
     oStrZ53CAB:setProperty('Z53_TIPO', MVC_VIEW_CANCHANGE,  .F.)
     oStrZ53DET:setProperty('Z53_NUMMED', MVC_VIEW_CANCHANGE, .F.)
     oStrZ53DET:setProperty('Z53_VALOR', MVC_VIEW_CANCHANGE, .F.)
