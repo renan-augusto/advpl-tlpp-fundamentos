@@ -20,6 +20,9 @@ Static Function viewdef
     oStrZ53CAB:setProperty('Z53_NUMMED', MVC_VIEW_ORDEM,  '03')
     oStrZ53CAB:setProperty('Z53_EMISSA', MVC_VIEW_ORDEM,  '04')
 
+    //inclusao da consulta padrao do numero do contrato
+    oStrZ53CAB:setProperty('Z53_NUMERO', MVC_VIEW_LOOKUP, 'Z51')
+
     oStrZ53CAB:setProperty('Z53_TIPO', MVC_VIEW_CANCHANGE,  .F.)
     oStrZ53DET:setProperty('Z53_NUMMED', MVC_VIEW_CANCHANGE, .F.)
     oStrZ53DET:setProperty('Z53_VALOR', MVC_VIEW_CANCHANGE, .F.)
