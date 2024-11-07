@@ -21,6 +21,8 @@ Static Function modeldef
     oStrZ53DET  := fwFormStruct(1, 'Z53',  {|cCampo| .not. alltrim(cCampo) $ 'Z53_NUMERO | Z53_NUMMED | Z53_EMISSA | Z53_TIPO'})
 
     oStrZ53CAB:setProperty('Z53_NUMERO', MODEL_FIELD_VALID, {|| fnValid()})
+    oStrZ53CAB:setProperty('Z53_NUMMED', MODEL_FIELD_INIT, {|| getSxeNum('Z53', 'Z53_NUMMED')})
+    oStrZ53CAB:setProperty('Z53_EMISSA', MODEL_FIELD_INIT, {|| dDataBase})
 
     oModel      := mpFormModel():new('MODEL_GCTBM03', bModelPre, bModelPos, bCommit, bCancel)
     oModel:setDescription('Apontamento de medições')
@@ -44,6 +46,14 @@ Return lCommit
 Static Function fCancel(oModel)
 
     lCancel := fwFormCancel(oModel)
+
+    if lCancel
+        //verificando se a variavel lsx8, caso ela tiver sido acionada significa que a getSxenum foi acionada
+        //quando o getSxenum for acionado a __lSX8 é preenchida com true
+        if __lSX8
+            rollbacksx8()
+        endif
+    endif
     
 Return lCancel
 
@@ -88,8 +98,6 @@ Static Function fnValid
             oModel:getModel('Z53MASTER'):setValue('Z53_TIPO', Z51->Z51_TIPO)
             return lValid
         endif
-
-    Otherwise
         
     EndCase
 
