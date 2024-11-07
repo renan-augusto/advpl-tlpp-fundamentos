@@ -1,0 +1,16 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_FILTRO_CONSULTA_Z52
+    Funcao para filtro na consulta Z52
+    @type  Function
+/*/
+Function U_FILTRO_CONSULTA_Z52
+
+    //funcao inCallStack verifica se determinada funcao esta na pilha de execucao da thread 
+    if fwIsInCallStack('U_GCTA003')
+        return Z52->Z52_NUMERO == cNumZ51 .and. Z52->Z52_FILIAL == xFilial('Z52')
+    elseif fwIsInCallStack('U_GCTBM03')
+        return Z52->Z52_NUMERO == fwFldGet('Z53_NUMERO') .and. Z52->Z52_FILIAL == xFilial('Z52')
+    endif
+
+Return
