@@ -76,6 +76,7 @@ Return lCancel
 Static Function vGridPre(oGridModel, nLine, cAction, cField, xValue, xCurrentValue, nOpcao)
     
     local lValid := .T.
+    local oModel := fwModelActive()
 
     if nOpcao == 2
         if cAction == 'SETVALUE'
@@ -94,10 +95,34 @@ Static Function vGridPre(oGridModel, nLine, cAction, cField, xValue, xCurrentVal
                 (cAliasSql)->(dbEval({|| nRecZ52 := R_E_C_N_O_}), dbCloseArea())
 
                 if nRecZ52 == 0
+                    oModel:setErrorMessage(,,,,'ERRO PRODUTO', 'PRODUTO DIGITADO NAO ENCONTRADO NO CONTRATO')
                     return .F.
                 endif
 
                 Z52->(dbSetOrder(1), dbGoTo(nRecZ52))
+                //atualização de campos numa tela mvc - fwFldPut()
+                
+                fwFldPut('Z53_DESPRD', Z52->Z52_DESPRD)
+                fwFldPut('Z53_LOCEST', Z52->Z52_LOCEST)
+                fwFldPut('Z53_VALOR', fwFldGet('Z53_QTD') * Z52->Z52_VLRUNI)
+
+            elseif cField == 'Z53_QTD'
+
+                cAliasSql := getNextAlias()
+                BeginSql alias cAliasSql
+                    SELECT * FROM %table:Z52% Z52
+                    WHERE Z52.%notdel%
+                    AND Z52_FILIAL = %exp:xFilial('Z52')%
+                    AND Z52_NUMERO = %exp:fwFldGet('Z53_NUMERO')%
+                    AND Z52_CODPRD = %exp:fwFldGet('Z53_CODPRD')%
+                EndSql
+                
+                nRecZ52 := 0
+                (cAliasSql)->(dbEval({|| nRecZ52 := R_E_C_N_O_}), dbCloseArea())
+
+                Z52->(dbSetOrder(1), dbGoTo(nRecZ52))
+                fwFldPut('Z53_VALOR', xValue * Z52->Z52_VLRUNI)
+            
             endif
         endif
     endif
