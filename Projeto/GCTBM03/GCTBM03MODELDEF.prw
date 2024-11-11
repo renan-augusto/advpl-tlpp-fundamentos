@@ -52,8 +52,8 @@ Return lWhen
 
 /*/{Protheus.doc} fCommit(oModel)/*/
 Static Function fCommit(oModel)
-    
-    local lCommit := fwFormCommit(oModel)
+    //parametro preenchido será executado dentro da transacao
+    local lCommit := fwFormCommit(oModel,,,,{|| U_ATUALIZA_INDICADORES_DO_CONTRATO()})
 
 Return lCommit
 
