@@ -7,7 +7,7 @@ Static Function modeldef
     local oStrZ53CAB
     local oStrZ53DET
     local bModelPre     := {|oModel| .T.}
-    local bModelPos     := {|oModel| .T.}
+    local bModelPos     := {|oModel| fModelPos(oModel)}
     local bCommit       := {|oModel| fCommit(oModel)} //retorna .T. ou .F. dependendo se ele conseguiu gravar ou nao
     local bCancel       := {|oModel| fCancel(oModel)}
     local bGridpre      := {|oGridModel,nLine,cAction,cField,xValue,xCurrentValue| vGridPre(oGridModel,nLine,cAction,cField,xValue,xCurrentValue,1)}
@@ -24,6 +24,7 @@ Static Function modeldef
     oStrZ53CAB:setProperty('Z53_NUMMED', MODEL_FIELD_INIT, {|| getSxeNum('Z53', 'Z53_NUMMED')})
     oStrZ53CAB:setProperty('Z53_EMISSA', MODEL_FIELD_INIT, {|| dDataBase})
     oStrZ53CAB:setProperty('Z53_EMISSA', MODEL_FIELD_WHEN, {|| fnWhen(1)})
+    oStrZ53DET:setProperty('*'         , MODEL_FIELD_WHEN, {|| fnWhen(2)})
 
     oModel      := mpFormModel():new('MODEL_GCTBM03', bModelPre, bModelPos, bCommit, bCancel)
     oModel:setDescription('Apontamento de medições')
@@ -46,6 +47,10 @@ Static Function fnWhen(nOpcao)
     Do Case
         Case nOpcao == 1 // when no campo de emissao
             return lInclui
+        Case nOpcao == 2 //validacao de todos os campos da estrutura de detalhe
+            if fwFldGet('Z53_STATUS') == 'E' //esta encerrado entao tenho que retornar F não permitindo edicao do usuario
+                return .F.
+            endif
     EndCase
 
 Return lWhen
@@ -79,7 +84,14 @@ Static Function vGridPre(oGridModel, nLine, cAction, cField, xValue, xCurrentVal
     local oModel := fwModelActive()
 
     if nOpcao == 2
-        if cAction == 'SETVALUE'
+        If cAction == 'DELETE'
+            
+            if fwFldGet('Z53_STATUS') == 'E'
+                oModel:setErrorMessage(,,,,'ERRO DELETE', 'MEDICAO ENCERRADA NAO PODE SER DELETADA')
+                return .F.    
+            endif
+
+        Elseif cAction == 'SETVALUE'
             if cField == 'Z53_CODPRD'
                 lValid := .T.
                 cAliasSql := getNextAlias()
@@ -165,6 +177,28 @@ Static Function fnValid
         endif
         
     EndCase
+
+
+Return lValid
+
+Static Function fModelPos(oModel)
+    
+    local lValid := .T.
+    local oModGrid := oModel:getModel('Z53DETAIL')
+    local x
+
+    if  oModel:getOperation() == 5
+        
+        for x := 1 to oModGrid:length()
+            oModGrid:goLine(x)
+            if oModGrid:getValue('Z53_STATUS') == 'E'
+                oModel:setErrorMessage(,,,,'ERRO', 'ESSA MEDICAO POSSUI ITENS ENCERRADOS. NAO PODE SER EXCLUIDA')
+                return .F.
+            endif
+        next
+
+    endif
+
 
 
 Return lValid

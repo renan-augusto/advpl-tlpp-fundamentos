@@ -16,6 +16,8 @@ Function U_GCTM04
     private aRotina := array(0)
     private oTempTable
 
+    aadd(aRotina, {"Processar", "U_PROCESSA_ENCERRAMENTO_MEDICOES()", 0, 3})
+
     aadd(aCamposTmp, {"MARK", "C", 2, 0})
     aadd(aCamposTmp, {"Z53_NUMERO", "C", tamSx3("Z53_NUMERO")[1], tamSx3("Z53_NUMERO")[2]})
     aadd(aCamposTmp, {"Z53_TIPO", "C", tamSx3("Z53_TIPO")[1], tamSx3("Z53_TIPO")[2]})
@@ -44,7 +46,7 @@ Function U_GCTM04
     while .not. (cALiasSQL)->(eof())
         (cAliasTmp)->(dbAppend())
         
-        (cAliasTmp)->MARK           := cMarca
+        // (cAliasTmp)->MARK           := cMarca
         (cAliasTmp)->Z53_NUMERO     := (cALiasSQL)->Z53_NUMERO
         (cAliasTmp)->Z53_TIPO       := (cALiasSQL)->Z53_TIPO
         (cAliasTmp)->Z53_NUMMED     := (cALiasSQL)->Z53_NUMMED

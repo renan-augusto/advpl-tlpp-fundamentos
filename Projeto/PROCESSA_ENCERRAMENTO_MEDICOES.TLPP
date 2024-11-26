@@ -1,0 +1,256 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_PROCESSA_ENCERRAMENTO_MEDICOES
+    Programa para encerramento das medicoes
+    @type  Function
+/*/
+Function U_PROCESSA_ENCERRAMENTO_MEDICOES
+    
+    local lExec := fwAlertYesNo('Confirma a execucao da rotina?', 'Processa encerramento de medicoes')
+    
+    private lAbortPrint := .F.
+
+    if .not. lExec
+        return
+    endif
+
+    processa({|| PROCESSA_ENCERRAMENTO_MEDICOES()}, "Encerrando medicoes", "Aguarde...")
+
+    fwAlertInfo('Processo concluido', 'Encerramento das medicoes')
+
+Return
+
+Static Function PROCESSA_ENCERRAMENTO_MEDICOES
+    
+    local nTamanho := 0
+
+    (cAliasTmp)->(dbEval({|| iif(empty(MARK), nil, nTamanho++)}))
+    
+    procregua(nTamanho)
+
+    (cAliasTmp)->(dbGoTop())
+    while .not. (cAliasTmp)->(eof())
+        
+        if lAbortPrint
+            exit            
+        endif
+
+        if .not. empty((cAliasTmp)->MARK)
+            (cAliasTmp)->(ENCERRA_MEDICAO())
+        endif
+
+        (cAliasTmp)->(dbSkip())
+
+    end
+Return
+
+Static Function ENCERRA_MEDICAO
+    
+    //incrementa a regua de processamento
+    incproc("PROCESSANDO MEDIÇÃO+ITEM: " + (cAliasTmp)->(Z53_NUMMED + '-' + Z53_ITEM))
+
+    do case
+        case LEFT(Z53_TIPO, 1) == "S" // encerramento da medicao sem integracai
+            ENCERRA_SEM_INTEGRACAO()
+        case LEFT(Z53_TIPO, 1) == "C" // encerramento da medicao com inclusao do pedido de compra
+            ENCERRA_COM_PEDIDO_DE_COMPRAS()
+        case LEFT(Z53_TIPO, 1) == "V" // encerramento da medicao com pedido de vendas
+            ENCERRA_COM_PEDIDO_DE_VENDAS()
+    end case
+Return
+
+Static Function ENCERRA_SEM_INTEGRACAO
+
+    if Z53->(dbSetOrder(1), dbSeek(xFilial(alias())+(cAliasTmp)->(Z53_NUMERO+Z53_NUMMED+Z53_ITEM)))
+
+        Z53->(reclock(alias(), .F.))
+            Z53->Z53_STATUS := 'E'
+            Z53->Z53_PEDIDO := 'XXXXXX'
+        Z53->(msunlock())
+
+    endif
+
+    (cAliasTmp)->(reclock(alias(), .F.))
+        (cAliasTmp)->Z53_STATUS := 'E'
+        (cAliasTmp)->Z53_PEDIDO := 'XXXXXX'
+    (cAliasTmp)->(msunlock())
+
+
+return
+
+Static Function ENCERRA_COM_PEDIDO_DE_COMPRAS
+
+    local aCab := {}
+    local aItem := {}
+    local aItens := {}
+    local cNumPed := ''
+
+    //rotina automatica tem essa variavel de controle
+    //serve para verificar se a rotina vfoi executada corretamente ou nao
+    Private lMsErroAUto := .F.
+
+    //preparando os dados do cabeçalho e dos itens
+    Z53->(dbSetOrder(1), dbSeek(xFilial(alias())+(cAliasTmp)->(Z53_NUMERO+Z53_NUMMED+Z53_ITEM)))
+    Z51->(dbSetOrder(1), dbSeek(xFilial(alias())+Z53->(Z53_NUMERO)))
+    Z52->(dbSetOrder(1), dbSeek(xFilial(alias())+Z53->(Z53_NUMERO)))
+
+    while .not. Z52(eof()) .and. Z52->(Z52_FILIAL+Z52_NUMERO) == Z53->(Z53_FILIAL+Z53_NUMERO)
+        
+        if Z52->Z52_CODPRD == Z53->Z53_CODPRD
+            exit
+        endif
+
+        Z52->(dbSkip())
+
+    end
+
+    cNumPed := getSxeNum('SC7', 'C7_NUM')
+
+    while SC7->(dbSetOrder(1),dbSeek(xFilial(alias())+cNumPed))
+        confirmSx8()
+        cNumPed := getSxeNum('SC7', 'C7_NUM')
+    enddo
+
+    aadd(aCab, {'C7_NUM'     ,   cNumPed            ,})
+    aadd(aCab, {'C7_EMISSAO' ,   ddatabase          ,})
+    aadd(acab, {'C7_FORNECE' ,   Z51->Z51_CLIENT    ,})
+    aadd(acab, {'C7_LOJA'    ,   Z51->Z51_LOJA      ,})
+    aadd(acab, {'C7_CONTATO' ,   'AUTO'             ,})
+    aadd(acab, {'C7_FILENT'  ,   cFilAnt            ,})
+    aadd(acab, {'C7_COND'    ,   '001'              ,})
+
+    aadd(aItem, {'C7_PRODUTO'   , Z53->Z53_CODPRD   ,})
+    aadd(aItem, {'C7_QUANT'     , Z53->Z53_QTD      ,})
+    aadd(aItem, {'C7_PRECO'     , Z53->Z53_VLRUNI   ,})
+    aadd(aItem, {'C7_TOTAL'     , Z53->Z53_VALOR    ,})
+    aadd(aItem, {'C7_ZNUMMED'   , Z53->Z53_NUMMED   ,})
+    aadd(aItem, {'C7_ZITEMMED'  , Z53->Z53_ITEM     ,})
+
+    aadd(aItens, aItem)
+
+    //msExecAuto funcao que executa rotina automatica
+    // recebe um bloco de codigo que é a funcao que iremos executar
+    //no caso do pedido de compras é o mata120(pedidoDeCompras/autorizacaoDeEntrega, cabecalho, itens, operacao(NOPC))
+    msExecAuto({|x,y| mata120(1, x, y, 3)}, aCab, aItens)
+
+    if lMsErroAUto
+        rollbackSX8()
+        mostraErro()
+        return .F.
+    endif
+
+    confirmSx8()
+
+    Z53->(reclock(alias(), .F.))
+        Z53->Z53_STATUS := 'E'
+        Z53->Z53_PEDIDO := cNumPed
+    Z53->(msunlock())
+
+    (cAliasTmp)->(reclock(alias(), .F.))
+        (cAliasTmp)->Z53_STATUS := 'E'
+        (cAliasTmp)->Z53_PEDIDO := cNumPed
+    (cAliasTmp)->(msunlock())
+
+
+return
+
+Static Function ENCERRA_COM_PEDIDO_DE_VENDAS
+    //sera gerado um unico pedido para todos os itens de medicao
+
+    local aCab          := {}
+    local aItem         := {}
+    local aItens        := {}
+    local nRecSC5       := 0
+    local nOpca         := 3
+    local cAliasSQL     := getNextAlias()
+
+    Private lMsErroAUto := .F.
+
+  
+    Z53->(dbSetOrder(1), dbSeek(xFilial(alias())+(cAliasTmp)->(Z53_NUMERO+Z53_NUMMED+Z53_ITEM)))
+    Z51->(dbSetOrder(1), dbSeek(xFilial(alias())+Z53->(Z53_NUMERO)))
+    Z52->(dbSetOrder(1), dbSeek(xFilial(alias())+Z53->(Z53_NUMERO)))
+
+    while .not. Z52(eof()) .and. Z52->(Z52_FILIAL+Z52_NUMERO) == Z53->(Z53_FILIAL+Z53_NUMERO)
+        
+        if Z52->Z52_CODPRD == Z53->Z53_CODPRD
+            exit
+        endif
+
+        Z52->(dbSkip())
+    enddo
+
+    BeginSQL alias cAliasSQL
+        SELECT * FROM %table:SC5% SC5
+        WHERE SC5.%notdel%
+        AND C5_FILIAL   = %exp:Z53->Z53_FILIAL%
+        AND C5_ZNUMMED  = %exp:Z53->Z53_NUMMED%
+        AND C5_NOTA     = ''
+        AND C5_CLIENTE  = %exp:Z51->Z51_CLIENTE%
+        AND C5_LOJACLI  = %exp:Z51->Z51+LOJA% 
+    EndSQL
+
+    nRecSC5 := 0
+    (cAliasSQL)->(dbEval({|| nRecSC5 := R_E_C_N_O_}), dbCloseArea())
+
+    if nRecSC5 > 0
+        SC5->(dbSetOrder(1), dbGoTo(nRecSC5))
+        nOpca := 4
+
+        aadd(acab, {"C5_NUM", SC5->C5_NUM, })
+
+        SC6->(dbSetOrder(1), dbSeek(SC5->(C5_FILIAL + C5_NUM)))
+
+        while .not. SC6(eof()) .and. SC6->(C6_FILIAL+C6_NUM) == SC5->(C5_FILIAL+C5_NUM)
+            aItem := {}
+            aadd(aItem, {"C6_PRODUTO"   , SC6->C6_PRODUTO     ,})
+            aadd(aItem, {"C6_QTDVEN"    , SC6->C6_QTDVEN      ,})
+            aadd(aItem, {"C6_PRCVEN"    , SC6->C6_PRCVEN      ,})
+            aadd(aItem, {"C6_PRUNIT"    , SC6->C6_PRUNIT      ,})
+            aadd(aItem, {"C6_VALOR"     , SC6->C6_VALOR       ,})
+            aadd(aItem, {"C6_TES"       , SC6->C6_TES         ,})
+            aadd(aItem, {"C6_ZITEMME"   , SC6->C6_ZITEMME     ,})
+            aadd(aItens, aItem)
+            SC6->(dbSkip())
+        enddo
+    endif
+
+
+    aadd(acab, {"C5_TIPO"      , "N"               ,})
+    aadd(aCab, {"C5_EMISSAO"   , Z53->Z53_EMISSA   ,})
+    aadd(aCab, {"C5_CLIENTE"   , Z51->Z51_CLIENTE  ,})
+    aadd(acab, {"C5_LOJACLI"   , Z51->Z51_LOJA     ,})
+    aadd(acab, {"C5_CONDPAG"   , "001"             ,})
+    aadd(acab, {"C5_NATUREZ"   , "102"             ,})
+    aadd(acab, {"C5_TPFRETE"   , "S"               ,})
+    aadd(acab, {"C5_ZNUMMED"   , Z53->Z53_NUMMED   ,})
+
+    aItem := {}
+    aadd(aItem, {"C6_PRODUTO"   , Z53->Z53_CODPRD   ,})
+    aadd(aItem, {"C6_QTDVEN"    , Z53->Z53_QTD      ,})
+    aadd(aItem, {"C6_PRCVEN"    , Z52->Z52_VLRUNI   ,})
+    aadd(aItem, {"C6_PRUNIT"    , Z52->Z52_VLRUNI   ,})
+    aadd(aItem, {"C6_VALOR"     , Z53->Z53_VALOR    ,})
+    aadd(aItem, {"C6_ZITEMME"   , Z53->Z53_ITEM     ,})
+    aadd(aItem, {"C6_TES"       , "501"             ,})
+    aadd(aItens, aItem)
+    //mata410 gera numercao automaticante dentro da propria funcao
+    msExecAuto({|x, y, z| mata410(x,y,z)}, acab, aItens, nOpca)
+
+    if lsMsErroAuto
+        mostraErro()
+        return .F.
+    endif
+
+    Z53->(reclock(alias(), .F.))
+        Z53->Z53_STATUS := 'E'
+        Z53->Z53_PEDIDO := SC5->C5_NUM
+    Z53->(msunlock())
+
+    (cAliasTmp)->(reclock(alias(), .F.))
+        (cAliasTmp)->Z53_STATUS := 'E'
+        (cAliasTmp)->Z53_PEDIDO := SC5->C5_NUM
+    (cAliasTmp)->(msunlock())
+
+
+return
