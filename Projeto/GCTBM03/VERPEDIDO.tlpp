@@ -7,7 +7,11 @@
 Function U_VER_PEDIDO
     
     if LEFT(Z53->Z53_TIPO, 1) == 'S'
-        return fwAlertInfo('MEDICAO SEM INTEGRACAO, NAO POSSUI PEDIDO', 'ATENCAO')
+        
+        if fwAlertYesNo('MEDICAO SEM INTEGRACAO. NAO POSSUI PEDIDO. DESEJA REABRIR A MEDICAO?', 'MEDICAO SEM INTEGRACAO')
+            Z53->(reclock(alias(), .F.), Z53_STATUS := 'A', Z53_PEDIDO := '', msunlock())
+        endif
+        return
     endif
 
     if empty(Z53->Z53_PEDIDO)

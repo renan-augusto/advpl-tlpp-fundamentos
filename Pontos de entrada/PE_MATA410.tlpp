@@ -1,0 +1,33 @@
+#include 'totvs.ch'
+
+/*/{Protheus.doc} U_M410FSQL
+    Ponto de entrada para filtro para tela de pedido de vendas
+    @type  Function
+    /*/
+Function U_M410FSQL
+    
+    local cFiltro := ''
+
+    if fwIsInCallStack('U_GCTB003')
+        cFiltro := "C5_NUM = '" + Z53->Z53_PEDIDO + "' "
+    endif
+
+Return cFiltro
+
+/*/{Protheus.doc} U_M410LIOK
+    Ponto de entrada que valida a digitacao de uma linha no pedido de compras
+    /*/
+Function U_M410LIOK
+    
+    local lValid := .T.
+
+    if .not. empty(M->C5_ZNUMMED)
+        if .not. empty(gdFieldGet('C6_ZITEMME'))
+            if gdDeleted()
+                fwAlertError('ITEM ASSOCIADO A MEDICAO DE CONTRATOS. NAO PODE SER EXLCUIDO', 'ERRO')
+                return .F.
+            endif
+        endif
+    endif
+
+Return lValid
